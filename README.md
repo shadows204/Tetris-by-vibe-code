@@ -1,5 +1,6 @@
 # Tetris-by-vibe-code
-Welcome to play the Tetris game created by Claude Code AI 
+Welcome to play the Tetris game created by Claude Code AI !
+Download the main.py to play directly!(IF YOU HAVE PYTHON ENVIRONMENT)
 
 ## Functions
 
