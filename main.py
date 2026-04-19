@@ -641,6 +641,78 @@ def menu_screen(screen: pygame.Surface, fonts: dict) -> str:
         pygame.display.flip()
 
 # ---------------------------------------------------------------------------
+# Pause menu
+# ---------------------------------------------------------------------------
+
+def pause_menu_screen(screen: pygame.Surface, fonts: dict) -> str:
+    """Return one of: 'resume', 'restart', 'menu'"""
+    clock = pygame.time.Clock()
+    actions = ["Continue (Esc)", "Restart", "Main Menu"]
+    buttons: list[Button] = []
+    selected = 0   # default to "Continue"
+
+    while True:
+        clock.tick(FPS)
+        W, H = screen.get_size()
+
+        # Rebuild buttons each frame
+        bw, bh = 280, 52
+        bx = W // 2 - bw // 2
+        by_start = H // 2 - (len(actions) * (bh + 16)) // 2
+        buttons = [
+            Button(a, pygame.Rect(bx, by_start + i * (bh + 16), bw, bh))
+            for i, a in enumerate(actions)
+        ]
+
+        mouse = pygame.mouse.get_pos()
+        for i, b in enumerate(buttons):
+            b.check(mouse)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return "resume"    # Esc continues by default
+                if event.key == pygame.K_UP:
+                    selected = (selected - 1) % len(actions)
+                if event.key == pygame.K_DOWN:
+                    selected = (selected + 1) % len(actions)
+                if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    return ["resume", "restart", "menu"][selected]
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for i, b in enumerate(buttons):
+                    if b.clicked(mouse):
+                        return ["resume", "restart", "menu"][i]
+
+        # Draw
+        screen.fill(BLACK)
+
+        # Overlay
+        W, H = screen.get_size()
+        overlay = pygame.Surface((W, H), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        screen.blit(overlay, (0, 0))
+
+        # Title
+        title_img = fonts["lg"].render("PAUSED", True, ACCENT)
+        screen.blit(title_img, title_img.get_rect(center=(W // 2, H // 2 - 120)))
+
+        # Buttons with highlight on selected
+        for i, b in enumerate(buttons):
+            col = ACCENT if i == selected else ACCENT_DARK
+            border = ACCENT if i == selected else MID_GREY
+            pygame.draw.rect(screen, col, b.rect, border_radius=8)
+            pygame.draw.rect(screen, border, b.rect, 2, border_radius=8)
+            img = fonts["md"].render(b.text, True, WHITE)
+            screen.blit(img, img.get_rect(center=b.rect.center))
+
+        hint = fonts["xs"].render("↑ ↓ to select   [Enter] confirm   [Esc] resume", True, MID_GREY)
+        screen.blit(hint, hint.get_rect(center=(W // 2, H - 40)))
+
+        pygame.display.flip()
+
+# ---------------------------------------------------------------------------
 # Main game loop
 # ---------------------------------------------------------------------------
 
@@ -667,7 +739,14 @@ def game_loop(screen: pygame.Surface, fonts: dict, scores: list[dict]) -> list[d
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return scores          # back to menu
+                    # Show pause menu
+                    pause_result = pause_menu_screen(screen, fonts)
+                    if pause_result == "resume":
+                        paused = False
+                    elif pause_result == "restart":
+                        return game_loop(screen, fonts, scores)  # Restart game
+                    elif pause_result == "menu":
+                        return scores  # back to menu
                 if event.key == pygame.K_p:
                     paused = not paused
                 if not paused and not board.game_over:
@@ -757,3 +836,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
